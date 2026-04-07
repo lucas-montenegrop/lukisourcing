@@ -1,0 +1,2 @@
+-- Starter seed file for LukiSourcing MVP.
+-- Add sample INSERT statements here when you are ready to test the schema.
