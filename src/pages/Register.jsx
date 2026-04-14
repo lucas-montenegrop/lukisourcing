@@ -54,6 +54,11 @@ export default function Register({ onAuthSuccess }) {
         return;
       }
 
+      if (!data || typeof data !== "object" || !data.token || !data.user) {
+        setError("The server did not return a complete login session.");
+        return;
+      }
+
       onAuthSuccess(data);
       navigate("/");
     } catch (networkError) {
