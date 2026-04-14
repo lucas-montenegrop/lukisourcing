@@ -1,10 +1,12 @@
 import express from "express";
 import apiRouter from "#api/index";
+import allowFrontendOrigin from "#middleware/allowFrontendOrigin";
 import errorHandler from "#middleware/errorHandler";
 import getUserFromToken from "#middleware/getUserFromToken";
 
 const app = express();
 
+app.use(allowFrontendOrigin);
 app.use(express.json());
 app.use(getUserFromToken);
 app.get("/", (req, res) => {
