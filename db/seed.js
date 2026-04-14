@@ -7,8 +7,10 @@ await db.end();
 console.log("Database seeded.");
 
 async function seed() {
-  await db.query("DELETE FROM stages_of_material");
-  await db.query("DELETE FROM fabrics");
+  await db.query("DELETE FROM activity_log");
+  await db.query("DELETE FROM notes");
+  await db.query("DELETE FROM material_factories");
+  await db.query("DELETE FROM materials");
   await db.query("DELETE FROM factory_contacts");
   await db.query("DELETE FROM factories");
   await db.query("DELETE FROM users");
@@ -26,25 +28,7 @@ async function seed() {
     ["Lucas", "Montenegro", "Luki Sourcing", "lucas@example.com", hashedPassword],
   );
 
-  const {
-    rows: [factory],
-  } = await db.query(
-    `
-      INSERT INTO factories (
-        user_id,
-        factory_name,
-        country,
-        address,
-        website,
-        main_phone,
-        main_email,
-        shipping_account_number,
-        shipping_notes,
-        notes
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `,
+  const factoriesToCreate = [
     [
       user.id,
       "Mozartex",
@@ -53,135 +37,178 @@ async function seed() {
       "https://mozartex.example.com",
       "+86 20 5555 1000",
       "sales@mozartex.example.com",
+      "25 days",
       "SHIP-10001",
       "Use DHL account for urgent swatches.",
-      "Main development mill for outerwear fabrics.",
+      "Main development mill for outerwear materials.",
     ],
-  );
-
-  const contactsToCreate = [
     [
-      factory.id,
+      user.id,
+      "Bombyx",
+      "Korea",
+      "17 Mill Street, Seoul",
+      "https://bombyx.example.com",
+      "+82 2 5555 2000",
+      "merch@bombyx.example.com",
+      "18 days",
+      null,
+      null,
+      "Good option for lightweight stretch materials.",
+    ],
+  ];
+
+  const createdFactories = [];
+
+  for (const factory of factoriesToCreate) {
+    const {
+      rows: [createdFactory],
+    } = await db.query(
+      `
+        INSERT INTO factories (
+          user_id,
+          factory_name,
+          country,
+          address,
+          website,
+          main_phone,
+          main_email,
+          lead_time,
+          shipping_account_number,
+          shipping_notes,
+          notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *
+      `,
+      factory,
+    );
+
+    createdFactories.push(createdFactory);
+  }
+
+  await db.query(
+    `
+      INSERT INTO factory_contacts (
+        factory_id,
+        full_name,
+        job_title,
+        email,
+        phone,
+        is_primary_contact,
+        notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `,
+    [
+      createdFactories[0].id,
       "Lina Chen",
       "Sales Manager",
       "lina@mozartex.example.com",
       "+86 20 5555 1001",
       true,
-      "Primary fabric development contact.",
+      "Primary development contact.",
+    ],
+  );
+
+  const materialsToCreate = [
+    [
+      user.id,
+      "Chalk Wax Melange",
+      "Fabric",
+      "Face-side chalk-mark wax coating on cross dye melange tencel.",
+      "sampling",
+      12.5,
+      "2025-08-21",
     ],
     [
-      factory.id,
-      "David Wu",
-      "Merchandiser",
-      "david@mozartex.example.com",
-      "+86 20 5555 1002",
-      false,
-      "Handles sampling follow-up.",
+      user.id,
+      "Stretch Cotton Nylon Twill",
+      "Fabric",
+      "166G/M2 stretch twill for development review.",
+      "requested",
+      9.75,
+      "2025-08-25",
     ],
   ];
 
-  for (const contact of contactsToCreate) {
-    await db.query(
+  const createdMaterials = [];
+
+  for (const material of materialsToCreate) {
+    const {
+      rows: [createdMaterial],
+    } = await db.query(
       `
-        INSERT INTO factory_contacts (
-          factory_id,
-          full_name,
-          job_title,
-          email,
-          phone,
-          is_primary_contact,
-          notes
+        INSERT INTO materials (
+          created_by,
+          name,
+          category,
+          description,
+          status,
+          cost,
+          eta
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
       `,
-      contact,
+      material,
     );
+
+    createdMaterials.push(createdMaterial);
   }
 
-  const fabricsToCreate = [
+  await db.query(
+    `
+      INSERT INTO material_factories (
+        material_id,
+        factory_id,
+        quoted_cost,
+        lead_time,
+        notes
+      )
+      VALUES ($1, $2, $3, $4, $5)
+    `,
     [
-      factory.id,
-      "Core Collection",
-      "25F012-F6",
-      null,
-      "Chalk Wax Melange",
-      "Face-side chalk-mark wax coating on cross dye melange tencel",
-      "Tencel/Cotton/Poly 35/50/15",
-      "57.5",
-      "146",
-      408.8,
-      280,
-      8.26,
-      "FOC0000928",
-      "ST257862",
-      "GREEN",
-      "soft/hard & non-chalk wax type customizable",
-      true,
-      "Wax coating",
-      "2025-08-15",
-      "Can be reviewed for lower-impact coating alternatives.",
-      "First sample received.",
-      "active",
+      createdMaterials[0].id,
+      createdFactories[0].id,
+      12.5,
+      "25 days",
+      "First sample submitted for review.",
     ],
-    [
-      factory.id,
-      null,
-      "PF10002065",
-      null,
-      "Stretch Cotton Nylon Twill",
-      "166G/M2 Stretch Cotton Nylon Twill",
-      "66% Cotton 29% Nylon 5% Spandex",
-      "54",
-      null,
-      null,
-      166,
-      4.9,
-      null,
-      null,
-      null,
-      null,
-      false,
-      null,
-      "2025-08-16",
-      null,
-      "Fabric cutting for qly ref",
-      "active",
-    ],
-  ];
+  );
 
-  for (const fabric of fabricsToCreate) {
-    await db.query(
-      `
-        INSERT INTO fabrics (
-          factory_id,
-          fabric_collection_name,
-          material_code,
-          item_no,
-          fabric_name,
-          description,
-          composition,
-          width_inch,
-          width_cm,
-          weight_glm,
-          weight_gsm,
-          weight_oz,
-          barcode,
-          color_code,
-          color_name,
-          handfeel,
-          has_image,
-          finish,
-          record_date,
-          sustainability_notes,
-          remarks,
-          status
-        )
-        VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-          $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
-        )
-      `,
-      fabric,
-    );
-  }
+  await db.query(
+    `
+      INSERT INTO material_factories (
+        material_id,
+        factory_id,
+        quoted_cost,
+        lead_time,
+        notes
+      )
+      VALUES ($1, $2, $3, $4, $5)
+    `,
+    [
+      createdMaterials[1].id,
+      createdFactories[1].id,
+      9.75,
+      "18 days",
+      "Requested quote and available yardage.",
+    ],
+  );
+
+  await db.query(
+    `
+      INSERT INTO notes (material_id, user_id, note)
+      VALUES ($1, $2, $3)
+    `,
+    [createdMaterials[0].id, user.id, "Review handfeel and confirm coating option."],
+  );
+
+  await db.query(
+    `
+      INSERT INTO activity_log (material_id, user_id, action_type, old_value, new_value)
+      VALUES ($1, $2, $3, $4, $5)
+    `,
+    [createdMaterials[0].id, user.id, "status_update", "requested", "sampling"],
+  );
 }

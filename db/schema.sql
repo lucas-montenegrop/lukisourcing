@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS activity_log CASCADE;
+DROP TABLE IF EXISTS notes CASCADE;
+DROP TABLE IF EXISTS material_factories CASCADE;
+DROP TABLE IF EXISTS materials CASCADE;
 DROP TABLE IF EXISTS developments CASCADE;
 DROP TABLE IF EXISTS stages_of_material CASCADE;
 DROP TABLE IF EXISTS fabrics CASCADE;
@@ -26,6 +30,7 @@ CREATE TABLE factories (
   website VARCHAR(255),
   main_phone VARCHAR(50),
   main_email VARCHAR(255),
+  lead_time VARCHAR(100),
   shipping_account_number VARCHAR(100),
   shipping_notes TEXT,
   notes TEXT
@@ -42,45 +47,49 @@ CREATE TABLE factory_contacts (
   notes TEXT
 );
 
-CREATE TABLE fabrics (
+CREATE TABLE materials (
   id SERIAL PRIMARY KEY,
-  factory_id INTEGER NOT NULL REFERENCES factories(id) ON DELETE CASCADE,
-  fabric_collection_name VARCHAR(255),
-  material_code VARCHAR(100),
-  item_no VARCHAR(100),
-  fabric_name VARCHAR(255) NOT NULL,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(100),
   description TEXT,
-  composition VARCHAR(255),
-  width_inch VARCHAR(50),
-  width_cm VARCHAR(50),
-  weight_glm NUMERIC(8, 2),
-  weight_gsm NUMERIC(8, 2),
-  weight_oz NUMERIC(8, 2),
-  barcode VARCHAR(100),
-  color_code VARCHAR(100),
-  color_name VARCHAR(100),
-  handfeel TEXT,
-  has_image BOOLEAN NOT NULL DEFAULT FALSE,
-  finish VARCHAR(150),
-  record_date DATE,
-  sustainability_notes TEXT,
-  remarks TEXT,
-  status VARCHAR(100) NOT NULL DEFAULT 'active'
+  status VARCHAR(100) NOT NULL DEFAULT 'requested',
+  cost NUMERIC(10, 2),
+  eta DATE
 );
 
-CREATE TABLE stages_of_material (
+CREATE TABLE material_factories (
   id SERIAL PRIMARY KEY,
-  fabric_id INTEGER NOT NULL REFERENCES fabrics(id) ON DELETE CASCADE,
+  material_id INTEGER NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
   factory_id INTEGER NOT NULL REFERENCES factories(id) ON DELETE CASCADE,
-  brand_name VARCHAR(255) NOT NULL,
-  season VARCHAR(100),
-  status VARCHAR(100) NOT NULL DEFAULT 'in development',
-  is_current BOOLEAN NOT NULL DEFAULT TRUE,
-  notes TEXT
+  quoted_cost NUMERIC(10, 2),
+  lead_time VARCHAR(100),
+  notes TEXT,
+  UNIQUE (material_id, factory_id)
+);
+
+CREATE TABLE notes (
+  id SERIAL PRIMARY KEY,
+  material_id INTEGER NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  note TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE activity_log (
+  id SERIAL PRIMARY KEY,
+  material_id INTEGER NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  action_type VARCHAR(100) NOT NULL,
+  old_value TEXT,
+  new_value TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_factories_user_id ON factories(user_id);
 CREATE INDEX idx_factory_contacts_factory_id ON factory_contacts(factory_id);
-CREATE INDEX idx_fabrics_factory_id ON fabrics(factory_id);
-CREATE INDEX idx_stages_of_material_fabric_id ON stages_of_material(fabric_id);
-CREATE INDEX idx_stages_of_material_factory_id ON stages_of_material(factory_id);
+CREATE INDEX idx_materials_created_by ON materials(created_by);
+CREATE INDEX idx_material_factories_material_id ON material_factories(material_id);
+CREATE INDEX idx_material_factories_factory_id ON material_factories(factory_id);
+CREATE INDEX idx_notes_material_id ON notes(material_id);
+CREATE INDEX idx_activity_log_material_id ON activity_log(material_id);
