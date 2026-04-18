@@ -16,6 +16,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(Boolean(token));
 
+  function clearStoredSession() {
+    // WHY: Keeping logout and invalid-session cleanup in one place improves code style
+    // and makes auth behavior easier to keep consistent across the whole app.
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setCurrentUser(null);
+  }
+
   useEffect(() => {
     async function loadCurrentUser() {
       if (!token) {
@@ -34,9 +42,9 @@ export default function App() {
         });
 
         if (!response.ok) {
-          localStorage.removeItem(TOKEN_KEY);
-          setToken(null);
-          setCurrentUser(null);
+          // WHY: A token that cannot load the current user should be cleared so the app
+          // returns to a clean login state instead of keeping a broken session around.
+          clearStoredSession();
           return;
         }
 
@@ -54,15 +62,17 @@ export default function App() {
   }, [token]);
 
   function handleAuthSuccess(authResult) {
+    // WHY: Saving the new token and user together keeps the login and register flow
+    // aligned with what the protected routes expect.
     localStorage.setItem(TOKEN_KEY, authResult.token);
     setToken(authResult.token);
     setCurrentUser(authResult.user);
   }
 
   function handleLogout() {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-    setCurrentUser(null);
+    // WHY: Reusing the shared session cleanup keeps logout behavior consistent with
+    // other auth resets, which supports reliable functionality.
+    clearStoredSession();
   }
 
   if (loadingUser) {
@@ -114,7 +124,9 @@ export default function App() {
               </Routes>
             </AppLayout>
           ) : (
-            <Navigate to="/register" replace />
+            // WHY: Returning users are more likely to need the login screen after logout
+            // or session expiry, so this default redirect improves the main auth flow.
+            <Navigate to="/login" replace />
           )
         }
       />

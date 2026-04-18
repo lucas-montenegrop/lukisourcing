@@ -10,13 +10,25 @@ function parseResponseBody(responseText) {
   }
 }
 
+function normalizeAuthFormData(formData) {
+  // WHY: Functionality is more reliable when auth requests send email in one consistent
+  // format, so login and register do not break due to accidental spaces or uppercase letters.
+  return {
+    ...formData,
+    email: typeof formData.email === "string" ? formData.email.trim().toLowerCase() : formData.email,
+  };
+}
+
 async function sendAuthRequest(path, formData, fallbackMessage) {
+  // WHY: Normalizing auth input in one shared request helper keeps register and login
+  // behavior consistent without repeating the same cleanup in multiple components.
+  const normalizedFormData = normalizeAuthFormData(formData);
   const response = await fetch(getApiUrl(path), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(formData),
+    body: JSON.stringify(normalizedFormData),
   });
 
   const responseText = await response.text();
