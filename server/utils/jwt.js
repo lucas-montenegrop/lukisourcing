@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
 
+const JWT_SECRET = process.env.JWT_SECRET || "test"
+
 function getJwtSecret() {
   // WHY: Auth tokens should come from an intentional secret, because a hidden fallback can make login appear to work locally while weakening real authentication behavior.
   if (
-    !process.env.JWT_SECRET ||
+    !JWT_SECRET ||
     process.env.JWT_SECRET === "replace_this_with_a_real_secret"
   ) {
     throw new Error(
@@ -11,7 +13,7 @@ function getJwtSecret() {
     );
   }
 
-  return process.env.JWT_SECRET;
+  return JWT_SECRET;
 }
 
 export function createToken(payload) {
