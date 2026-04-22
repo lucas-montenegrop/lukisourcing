@@ -80,7 +80,7 @@ router.patch("/:id", requireUser, async (req, res) => {
     return;
   }
 
-  const updatedMaterial = await updateMaterial(req.params.id, req.user.id, {
+  const materialUpdates = {
     name: req.body.name ?? existingMaterial.name,
     season: req.body.season ?? existingMaterial.season,
     year: req.body.year ?? existingMaterial.year,
@@ -102,11 +102,19 @@ router.patch("/:id", requireUser, async (req, res) => {
     agent_phone: req.body.agent_phone ?? existingMaterial.agent_phone,
     status: req.body.status ?? existingMaterial.status,
     option_number: req.body.option_number ?? existingMaterial.option_number,
-    factory_id: nextFactoryId,
-    supplier_quality_name:
-      req.body.supplier_quality_name ?? existingMaterial.supplier_quality_name,
-    fibers: req.body.fibers ?? existingMaterial.fibers,
-  });
+  };
+
+  if ("factory_id" in req.body || "supplier_quality_name" in req.body) {
+    materialUpdates.factory_id = nextFactoryId;
+    materialUpdates.supplier_quality_name =
+      req.body.supplier_quality_name ?? existingMaterial.supplier_quality_name;
+  }
+
+  if ("fibers" in req.body) {
+    materialUpdates.fibers = req.body.fibers;
+  }
+
+  const updatedMaterial = await updateMaterial(req.params.id, req.user.id, materialUpdates);
 
   res.send(updatedMaterial);
 });

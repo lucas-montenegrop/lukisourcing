@@ -116,12 +116,18 @@ export async function createMaterial(userId, materialData) {
     ],
   );
 
-  await replaceMaterialFactories(
-    material.id,
-    normalizeOptionalValue(materialData.factory_id),
-    materialData.supplier_quality_name,
-  );
-  await replaceMaterialFibers(material.id, materialData.fibers);
+  if ("factory_id" in materialData || "supplier_quality_name" in materialData) {
+    await replaceMaterialFactories(
+      material.id,
+      normalizeOptionalValue(materialData.factory_id),
+      materialData.supplier_quality_name,
+    );
+  }
+
+  if ("fibers" in materialData) {
+    await replaceMaterialFibers(material.id, materialData.fibers);
+  }
+
   return getMaterialById(material.id, userId);
 }
 
