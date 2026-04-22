@@ -9,6 +9,7 @@ const samplingStatuses = new Set(["sampling requested", "sampling received"]);
 export default function Dashboard() {
   const [materials, setMaterials] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadMaterials();
@@ -21,6 +22,7 @@ export default function Dashboard() {
     }
 
     try {
+      setError("");
       const response = await fetch(getApiUrl("/api/materials"), {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -28,13 +30,14 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        return;
+        throw new Error("Unable to load dashboard materials.");
       }
 
       const data = await response.json();
       setMaterials(data);
     } catch (error) {
       console.error(error);
+      setError(error.message || "Unable to load dashboard materials.");
     }
   }
 
@@ -45,6 +48,16 @@ export default function Dashboard() {
     }
 
     setUpdatingId(material.id);
+    setError("");
+    const previousMaterials = materials;
+
+    setMaterials((current) =>
+      current.map((existingMaterial) =>
+        existingMaterial.id === material.id
+          ? { ...existingMaterial, status: nextStatus }
+          : existingMaterial,
+      ),
+    );
 
     try {
       const response = await fetch(getApiUrl(`/api/materials/${material.id}`), {
@@ -62,14 +75,11 @@ export default function Dashboard() {
         throw new Error(await response.text());
       }
 
-      const updatedMaterial = await response.json();
-      setMaterials((current) =>
-        current.map((existingMaterial) =>
-          existingMaterial.id === updatedMaterial.id ? updatedMaterial : existingMaterial,
-        ),
-      );
+      await loadMaterials();
     } catch (error) {
       console.error(error);
+      setMaterials(previousMaterials);
+      setError(error.message || "Unable to update material status.");
     } finally {
       setUpdatingId(null);
     }
@@ -119,6 +129,8 @@ export default function Dashboard() {
           <h2>Recent Materials</h2>
           <p>Quick view of active development materials.</p>
         </div>
+
+        {error ? <p className="form-message error-text">{error}</p> : null}
 
         {recentMaterials.length === 0 ? (
           <p className="empty-state">No materials yet. Add one from the Materials page.</p>
