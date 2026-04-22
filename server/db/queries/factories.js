@@ -89,7 +89,7 @@ export async function getFactoryById(id) {
     FROM factories
     LEFT JOIN factory_contacts
       ON factory_contacts.factory_id = factories.id
-    WHERE id = $1
+    WHERE factories.id = $1
     GROUP BY factories.id
   `;
   const {
