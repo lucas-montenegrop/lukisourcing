@@ -513,6 +513,21 @@ th {
   white-space: nowrap;
 }
 
+.table-status-select {
+  min-width: 170px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #0b0b0b;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.table-status-select:focus {
+  outline: 1px solid var(--green);
+  border-color: var(--green);
+}
+
 .empty-state {
   margin: 0;
   color: var(--muted);

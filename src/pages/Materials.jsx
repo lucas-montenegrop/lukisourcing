@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getApiUrl } from "../api/client.js";
 import PageHeader from "../components/PageHeader.jsx";
+import { materialStatusOptions } from "../constants/materialStatuses.js";
 
 const TOKEN_KEY = "luki_token";
 
@@ -12,20 +13,6 @@ const seasonOptions = [
   "Holiday",
   "Pre-Fall",
   "Resort",
-];
-
-const statusOptions = [
-  "pulled",
-  "requested",
-  "quoted",
-  "sampling requested",
-  "sampling received",
-  "approved",
-  "ordered",
-  "bulk requested",
-  "bulk received",
-  "dropped",
-  "cancelled",
 ];
 
 const weightUnits = ["gsm", "glm"];
@@ -542,7 +529,7 @@ export default function Materials() {
           <label className="field">
             <span>Status</span>
             <select name="status" value={formData.status} onChange={handleChange}>
-              {statusOptions.map((status) => (
+              {materialStatusOptions.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>

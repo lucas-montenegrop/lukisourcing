@@ -1,39 +1,79 @@
 import { useEffect, useState } from "react";
 import { getApiUrl } from "../api/client.js";
 import PageHeader from "../components/PageHeader.jsx";
+import { materialStatusOptions } from "../constants/materialStatuses.js";
 
 const TOKEN_KEY = "luki_token";
+const samplingStatuses = new Set(["sampling requested", "sampling received"]);
 
 export default function Dashboard() {
   const [materials, setMaterials] = useState([]);
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
-    async function loadMaterials() {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) {
+    loadMaterials();
+  }, []);
+
+  async function loadMaterials() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch(getApiUrl("/api/materials"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
         return;
       }
 
-      try {
-        const response = await fetch(getApiUrl("/api/materials"), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const data = await response.json();
+      setMaterials(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
-        if (!response.ok) {
-          return;
-        }
-
-        const data = await response.json();
-        setMaterials(data);
-      } catch (error) {
-        console.error(error);
-      }
+  async function handleStatusChange(material, nextStatus) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token || nextStatus === material.status) {
+      return;
     }
 
-    loadMaterials();
-  }, []);
+    setUpdatingId(material.id);
+
+    try {
+      const response = await fetch(getApiUrl(`/api/materials/${material.id}`), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: nextStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const updatedMaterial = await response.json();
+      setMaterials((current) =>
+        current.map((existingMaterial) =>
+          existingMaterial.id === updatedMaterial.id ? updatedMaterial : existingMaterial,
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   const summaryCards = [
     {
@@ -43,7 +83,9 @@ export default function Dashboard() {
     },
     {
       label: "Sampling",
-      value: String(materials.filter((material) => material.status === "sampling").length),
+      value: String(
+        materials.filter((material) => samplingStatuses.has(material.status)).length,
+      ),
       tone: "pink",
     },
     {
@@ -97,7 +139,18 @@ export default function Dashboard() {
                   <td>{material.factory_names || "Unassigned"}</td>
                   <td>{material.category_collection || "—"}</td>
                   <td>
-                    <span className="tag neutral">{material.status}</span>
+                    <select
+                      className="table-status-select"
+                      value={material.status}
+                      onChange={(event) => handleStatusChange(material, event.target.value)}
+                      disabled={updatingId === material.id}
+                    >
+                      {materialStatusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                 </tr>
               ))}
